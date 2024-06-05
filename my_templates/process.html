@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Details</title>
+</head>
+<body>
+    <h1>Process Details</h1>
+    <h2>{{ process_data[1] }}</h2>
+    <h3>Asset Names:</h3>
+    <ul>
+        {% for asset_name in asset_names %}
+        <li>{{ asset_name }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

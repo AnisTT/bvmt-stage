@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <title>Document</title>
+</head>
+<body>
+  <a href="/"><button>Select Process</button></a>
+  <select id="process-select">
+    {% for process_name in process_names %}
+      <option value="/process/{{ process_name }}" {% if process_name == selected_process %}selected{% endif %}>{{ process_name }}</option>
+    {% endfor %}
+  </select>
+  <table>
+    <tr>
+        <th>ProcessID</th>
+        <th>AssetID</th>
+        <th>Description</th>
+        <th>Status</th>
+        <th>Proof</th>
+        <th>Asset List</th>
+    </tr>
+    <tr>
+        {% for data in process_data %}
+            <td>{{ data }}</td>
+        {% endfor %}
+        <td>{{ asset_list }}</td>
+        <td>
+            <select name="asset_name_2"> <!-- Unique name for the second dropdown -->
+                {% for name in asset_names %}
+                    <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" id="add-asset-button">Add asset</button>
+        </td>
+    </tr>
+  </table>
+  <button id="asset-button" value="/get-asset">Get Data</button>
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>ProcessID</th>
+        <th>AssetName</th>
+        <th>ProcessName</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+    </tbody>
+  </table>
+
+  <script>
+    document.getElementById('add-asset-button').addEventListener('click', function() {
+      let selectedAsset = document.getElementsByName('asset_name_2')[0].value;
+      let processSelect = document.getElementById('process-select');
+      let selectedProcess = processSelect.options[processSelect.selectedIndex].text;
+      fetch('/add-asset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ asset: selectedAsset, process_name: selectedProcess }),
+      }).then(response => {
+        if (response.status === 409) {
+            alert('This process already has the selected asset.');
+          } else if (response.ok) {
+            location.reload();
+            alert('the selected asset is added.');
+          } else {
+            alert('An error occurred. Please try again.');
+      };
+    });
+    });
+
+    document.getElementById('process-select').addEventListener('change', function() {
+      var selectedOption = this.options[this.selectedIndex];
+      window.location.href = selectedOption.value;
+    });
+    
+    document.getElementById('asset-button').addEventListener('click', function(){
+      fetch('/get-data')
+  .then(response => response.json())
+  .then(data => {
+
+    console.log(data);  // Log the data to the console
+    let tableBody = document.getElementById('table-body');
+    data.forEach(row => {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row[3]}</td><td>${row[1]}<td>${row[0]}</td>`;
+      tableBody.appendChild(tr);
+    });
+  });
+    });
+  </script>
+</body>
+</html>
