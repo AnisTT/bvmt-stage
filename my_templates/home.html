@@ -7,13 +7,13 @@
 
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
 </head>
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between mb-3">
-            <a href="/" class="btn btn-primary">Select Process</a>
+            <a href="/" class="btn btn-primary">RESET</a>
             <select id="process-select" class="form-control w-50">
                 {% for process_name in process_names %}
                     <option value="/process/{{ process_name }}" {% if process_name == selected_process %}selected{% endif %}>{{ process_name }}</option>
@@ -51,6 +51,8 @@
                 </tr>
             </tbody>
         </table>
+       
+  
         <div class="form-group">
           <label for="table-select">Select Table:</label>
           <select id="table-select" class="form-control">
@@ -68,77 +70,37 @@
         </table>
     </div>
 
-    <script>
-        document.getElementById('add-asset-button').addEventListener('click', function() {
-            let selectedAsset = document.getElementsByName('asset_name_2')[0].value;
-            let processSelect = document.getElementById('process-select');
-            let selectedProcess = processSelect.options[processSelect.selectedIndex].text;
-            fetch('/add-asset', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ asset: selectedAsset, process_name: selectedProcess }),
-            }).then(response => {
-                if (response.status === 409) {
-                    alert('This process already has the selected asset.');
-                } else if (response.ok) {
-                    location.reload();
-                    alert('The selected asset is added.');
-                } else {
-                    alert('An error occurred. Please try again.');
-                }
-            });
-        });
 
-        document.getElementById('process-select').addEventListener('change', function() {
-            var selectedOption = this.options[this.selectedIndex];
-            window.location.href = selectedOption.value;
-        });
-        
-        document.getElementById('asset-button').addEventListener('click', function() {
-            let selectedTable = document.getElementById('table-select').value;
-            fetch('/get-data/'+ selectedTable)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(responseData => {
-                    console.log(responseData);  
-                    const { colnames, data } = responseData;
-                    if (!Array.isArray(data) || !data.every(Array.isArray)) {
-                        console.error('Expected data to be an array of arrays but got:', data);
-                        return;
-                    }
 
-                    let tableHead = document.getElementById('table-head');
-                    let tableBody = document.getElementById('table-body');
-                    
-                    tableHead.innerHTML = '';
-                    tableBody.innerHTML = '';
-                    let headerRow = document.createElement('tr');
-                    colnames.forEach(colname => {
-                        let th = document.createElement('th');
-                        th.innerHTML = colname;
-                        headerRow.appendChild(th);
-                    });
-                    tableHead.appendChild(headerRow);
-                    data.forEach(row => {
-                        let tr = document.createElement('tr');
-                        row.forEach(cell => {
-                            let td = document.createElement('td');
-                            td.innerHTML = cell;
-                            tr.appendChild(td);
-                        });
-                        tableBody.appendChild(tr);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        });
-    </script>
+
+
+
+
+
+
+    <div id="conflictModal" class="modal">
+        <div class="modal-content">
+        <button class="close">&times;</button>
+        <p>This process already has the selected asset.</p>
+        </div>
+    </div>
+    
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+        <button class="close">&times;</button>
+        <p>The selected asset is added.</p>
+        </div>
+    </div>
+    
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+        <button class="close">&times;</button>
+        <p>An error occurred. Please try again.</p>
+        </div>
+    </div>
+
+
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

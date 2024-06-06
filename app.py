@@ -1,8 +1,20 @@
 from calendar import c
 from flask import Flask, render_template, g, request, jsonify, redirect, url_for
 import sqlite3
+from flask_httpauth import HTTPBasicAuth
 
 app = Flask(__name__, template_folder='my_templates')
+auth = HTTPBasicAuth()
+
+users = {
+    "admin": "admin"
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and users[username] == password:
+        return username
+    
 
 def get_db():
     if 'db' not in g:
@@ -20,6 +32,7 @@ def teardown_request(exception):
         db.close()
 
 @app.route('/')
+@auth.login_required
 def index():
     cursor = get_db().cursor()
     cursor.execute("SELECT Description FROM Process")
@@ -30,6 +43,8 @@ def index():
     return render_template('home.html', process_names=process_names, table_names=table_names)
 
 @app.route('/process/<process_name>')
+@auth.login_required
+
 def process(process_name):
     cursor = get_db().cursor()
     cursor.execute("SELECT * FROM Process WHERE Description = ?", (process_name,))
@@ -54,6 +69,8 @@ def process(process_name):
     return render_template('home.html', process_data=process_data, process_names=process_names, asset_names=asset_data, asset_list=asset_list, selected_process=process_name, table_names=table_names)  
 
 @app.route('/add-asset', methods=['POST'])
+@auth.login_required
+
 def add_asset():
     data = request.get_json()
     selectedAsset = data['asset']
@@ -69,6 +86,8 @@ def add_asset():
     get_db().commit()
     return '', 204
 @app.route('/get-data/<table_name>', methods=['GET'])
+@auth.login_required
+
 def get_data(table_name):
     cursor = get_db().cursor()
     query = f"SELECT * FROM {table_name}"
