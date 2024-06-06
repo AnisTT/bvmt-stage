@@ -3,95 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
     <title>Document</title>
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </head>
 <body>
-  <a href="/"><button>Select Process</button></a>
-  <select id="process-select">
-    {% for process_name in process_names %}
-      <option value="/process/{{ process_name }}" {% if process_name == selected_process %}selected{% endif %}>{{ process_name }}</option>
-    {% endfor %}
-  </select>
-  <table>
-    <tr>
-        <th>ProcessID</th>
-        <th>AssetID</th>
-        <th>Description</th>
-        <th>Status</th>
-        <th>Proof</th>
-        <th>Asset List</th>
-    </tr>
-    <tr>
-        {% for data in process_data %}
-            <td>{{ data }}</td>
-        {% endfor %}
-        <td>{{ asset_list }}</td>
-        <td>
-            <select name="asset_name_2"> <!-- Unique name for the second dropdown -->
-                {% for name in asset_names %}
-                    <option value="{{ name }}">{{ name }}</option>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between mb-3">
+            <a href="/" class="btn btn-primary">Select Process</a>
+            <select id="process-select" class="form-control w-50">
+                {% for process_name in process_names %}
+                    <option value="/process/{{ process_name }}" {% if process_name == selected_process %}selected{% endif %}>{{ process_name }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" id="add-asset-button">Add asset</button>
-        </td>
-    </tr>
-  </table>
-  <button id="asset-button" value="/get-asset">Get Data</button>
-  <table id="data-table">
-    <thead>
-      <tr>
-        <th>ProcessID</th>
-        <th>AssetName</th>
-        <th>ProcessName</th>
-      </tr>
-    </thead>
-    <tbody id="table-body">
-    </tbody>
-  </table>
+        </div>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ProcessID</th>
+                    <th>AssetID</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Proof</th>
+                    <th>Asset List</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for data in process_data %}
+                        <td>{{ data }}</td>
+                    {% endfor %}
+                    <td>{{ asset_list }}</td>
+                        <div class="input-group">
+                            <select name="asset_name_2" class="form-control"> <!-- Unique name for the second dropdown -->
+                                {% for name in asset_names %}
+                                    <option value="{{ name }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="input-group-append">
+                                <button type="submit" id="add-asset-button" class="btn btn-success">Add asset</button>
+                            </div>
+                        </div>
+                   
+                </tr>
+            </tbody>
+        </table>
+        <div class="form-group">
+          <label for="table-select">Select Table:</label>
+          <select id="table-select" class="form-control">
+          {% for table in table_names %}
+              <option value="{{ table }}">{{ table }}</option>
+          {% endfor %}
+          </select>
+      </div>
+        <button id="asset-button" class="btn btn-info" value="/get-asset/{{ table }}">Get Data</button>
+        <table id="data-table" class="table table-striped mt-3">
+            <thead id="table-head">
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
 
-  <script>
-    document.getElementById('add-asset-button').addEventListener('click', function() {
-      let selectedAsset = document.getElementsByName('asset_name_2')[0].value;
-      let processSelect = document.getElementById('process-select');
-      let selectedProcess = processSelect.options[processSelect.selectedIndex].text;
-      fetch('/add-asset', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ asset: selectedAsset, process_name: selectedProcess }),
-      }).then(response => {
-        if (response.status === 409) {
-            alert('This process already has the selected asset.');
-          } else if (response.ok) {
-            location.reload();
-            alert('the selected asset is added.');
-          } else {
-            alert('An error occurred. Please try again.');
-      };
-    });
-    });
+    <script>
+        document.getElementById('add-asset-button').addEventListener('click', function() {
+            let selectedAsset = document.getElementsByName('asset_name_2')[0].value;
+            let processSelect = document.getElementById('process-select');
+            let selectedProcess = processSelect.options[processSelect.selectedIndex].text;
+            fetch('/add-asset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ asset: selectedAsset, process_name: selectedProcess }),
+            }).then(response => {
+                if (response.status === 409) {
+                    alert('This process already has the selected asset.');
+                } else if (response.ok) {
+                    location.reload();
+                    alert('The selected asset is added.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
+            });
+        });
 
-    document.getElementById('process-select').addEventListener('change', function() {
-      var selectedOption = this.options[this.selectedIndex];
-      window.location.href = selectedOption.value;
-    });
-    
-    document.getElementById('asset-button').addEventListener('click', function(){
-      fetch('/get-data')
-  .then(response => response.json())
-  .then(data => {
+        document.getElementById('process-select').addEventListener('change', function() {
+            var selectedOption = this.options[this.selectedIndex];
+            window.location.href = selectedOption.value;
+        });
+        
+        document.getElementById('asset-button').addEventListener('click', function() {
+            let selectedTable = document.getElementById('table-select').value;
+            fetch('/get-data/'+ selectedTable)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(responseData => {
+                    console.log(responseData);  
+                    const { colnames, data } = responseData;
+                    if (!Array.isArray(data) || !data.every(Array.isArray)) {
+                        console.error('Expected data to be an array of arrays but got:', data);
+                        return;
+                    }
 
-    console.log(data);  // Log the data to the console
-    let tableBody = document.getElementById('table-body');
-    data.forEach(row => {
-      let tr = document.createElement('tr');
-      tr.innerHTML = `<td>${row[3]}</td><td>${row[1]}<td>${row[0]}</td>`;
-      tableBody.appendChild(tr);
-    });
-  });
-    });
-  </script>
+                    let tableHead = document.getElementById('table-head');
+                    let tableBody = document.getElementById('table-body');
+                    
+                    tableHead.innerHTML = '';
+                    tableBody.innerHTML = '';
+                    let headerRow = document.createElement('tr');
+                    colnames.forEach(colname => {
+                        let th = document.createElement('th');
+                        th.innerHTML = colname;
+                        headerRow.appendChild(th);
+                    });
+                    tableHead.appendChild(headerRow);
+                    data.forEach(row => {
+                        let tr = document.createElement('tr');
+                        row.forEach(cell => {
+                            let td = document.createElement('td');
+                            td.innerHTML = cell;
+                            tr.appendChild(td);
+                        });
+                        tableBody.appendChild(tr);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+    </script>
 </body>
 </html>
