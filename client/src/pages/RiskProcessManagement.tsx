@@ -13,7 +13,15 @@ interface ProcessData {
 interface MyPayload {
   identity: string;
   role: string;
-  
+  sub: string;
+  user_id: string;
+}
+interface UserActivity {
+  id: string;
+  user_id: string;
+  login_time: string;
+  ip_address: string;
+  action: string;
 }
 
 interface Props {
@@ -32,6 +40,11 @@ interface TableData {
 
 const RiskProcessManagement: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
+  const [user_id, setuserID] = useState<string >('');
+  const [lastlogindetails, setdetails] = useState<UserActivity[]>([]);
+  const [lastLoginTime, setLastLoginTime] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>('');
   const [Sdata, setSData] = useState<Props | null>(null);
   const [processData, setProcessData] = useState<Props | null>(null);
   const [selectedProcess, setSelectedProcess] = useState<string>('');
@@ -51,8 +64,13 @@ const RiskProcessManagement: React.FC = () => {
         const decodedToken = jwtDecode<MyPayload>(token);
         console.log(decodedToken);
         const role = decodedToken.role;
-        console.log(role);
+        const identity = decodedToken.sub;
+        const user_id = decodedToken.user_id[0];
+        setUsername(identity);
         setUserRole(role);
+        setuserID(user_id);
+        
+        fetchUserActivity(user_id);
       } else {
         console.error('Invalid token format');
       }
@@ -61,13 +79,30 @@ const RiskProcessManagement: React.FC = () => {
       console.error('No token found');
     }
   }, []);
-
+  console.log(user_id);
   useEffect(() => {
     fetch('http://localhost:5000/')
       .then(response => response.json())
       .then(data => setSData(data))
       .catch(error => console.error('Error fetching data:', error));
   }, []);
+
+
+  const fetchUserActivity = async (user_id: string) => {
+    try {
+      const result = await axios.get(`http://localhost:5000/userActivity/${user_id}`);
+      console.log(result.data);
+      
+      if (result.data.length > 0) {
+        var data = (result.data[result.data.length - 2]);
+        console.log(data);
+        console.log(data[2]);
+        setLastLoginTime(data[2]);
+      }
+    } catch (error) {
+      console.error('Error fetching user activity:', error);
+    }
+  }
 
   useEffect(() => {
     if (selectedTable) {
@@ -86,6 +121,7 @@ const RiskProcessManagement: React.FC = () => {
     }
   };
 
+  
   const GotoUser = async () => {
     window.location.href = "/users";
   };
@@ -100,7 +136,6 @@ const RiskProcessManagement: React.FC = () => {
       console.error('Error fetching process data:', error);
     }
   };
-  console.log(processData);
 
   const handleProcessChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const processName = e.target.value;
@@ -131,7 +166,6 @@ const RiskProcessManagement: React.FC = () => {
         setModalMessage('This process already has the selected asset.');
       } else if (response.ok) {
         setModalMessage('The selected asset is added.');
-        window.location.reload();
       } else {
         setModalMessage('An error occurred. Please try again.');
       }
@@ -159,16 +193,24 @@ const RiskProcessManagement: React.FC = () => {
     asset_names = [],
     table_names = [],
   } = Sdata;
-
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="user-details">
+          <h3>Process Management</h3>
+          <p>Logged in as: <strong>{userRole}</strong></p>
+          <p>Username: <strong>{username}</strong></p>
+          <p>Last login time: <strong>{lastLoginTime ? lastLoginTime.toString() : 'N/A'}</strong></p>
+        </div>
         <a href="/" className="btn btn-primary">
           RESET
         </a>
+      </div>
+      <div className="mb-4">
+        <label htmlFor="process-select" className="form-label">Select Process</label>
         <select
           id="process-select"
-          className="form-control w-50"
+          className="form-select"
           onChange={handleProcessChange}
           value={selectedProcess}
         >
@@ -181,17 +223,14 @@ const RiskProcessManagement: React.FC = () => {
         </select>
       </div>
       {userRole === 'admin' && (
-        <div className="input-group">          
-            <button type="button" className="btn btn-success" onClick={GotoUser}>
-              Show All users
-            </button>
+        <div className="mb-4">
+          <button type="button" className="btn btn-success" onClick={GotoUser}>
+            Show All Users
+          </button>
         </div>
-
       )}
-
-
       <table className="table table-bordered">
-        <thead>
+        <thead className="table-dark">
           <tr>
             <th>ProcessID</th>
             <th>AssetID</th>
@@ -209,35 +248,41 @@ const RiskProcessManagement: React.FC = () => {
             <td>{processData?.process_data[3]}</td>
             <td>{processData?.process_data[4]}</td>
             <td>
-              <ul>
+              <ul className="list-unstyled">
                 {processData?.asset_list.map((asset, index) => (
                   <li key={index}>{asset}</li>
                 ))}
               </ul>
               {userRole === 'admin' && (
-              <div className="input-group">
-                <select name="asset_name_2" className="form-control">
-                  {processData?.asset_names.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                <div className="input-group-append">
-                  <button type="button" id="add-asset-button" className="btn btn-success" onClick={handleAddAsset}>
-                    Add asset
+                <div className="input-group mt-2">
+                  <select name="asset_name_2" className="form-select">
+                    {processData?.asset_names.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    id="add-asset-button"
+                    className="btn btn-success"
+                    onClick={handleAddAsset}
+                  >
+                    Add Asset
                   </button>
                 </div>
-              </div>
-            )}
+              )}
             </td>
           </tr>
         </tbody>
       </table>
-
-      <div className="form-group">
-        <label htmlFor="table-select">Select Table:</label>
-        <select id="table-select" className="form-control" onChange={(e) => setSelectedTable(e.target.value)}>
+      <div className="mb-4">
+        <label htmlFor="table-select" className="form-label">Select Table</label>
+        <select
+          id="table-select"
+          className="form-select"
+          onChange={(e) => setSelectedTable(e.target.value)}
+        >
           <option value="">Select Table</option>
           {table_names.map((table) => (
             <option key={table} value={table}>
@@ -246,18 +291,18 @@ const RiskProcessManagement: React.FC = () => {
           ))}
         </select>
       </div>
-      <button id="asset-button" className="btn btn-info" onClick={() => fetchTableData(selectedTable)}>
+      <button id="asset-button" className="btn btn-info mb-4" onClick={() => fetchTableData(selectedTable)}>
         Get Data
       </button>
-      <table id="data-table" className="table table-striped mt-3">
-        <thead id="table-head">
+      <table id="data-table" className="table table-striped">
+        <thead className="table-dark">
           <tr>
             {tableData.colnames.map((colname: string) => (
               <th key={colname}>{colname}</th>
             ))}
           </tr>
         </thead>
-        <tbody id="table-body">
+        <tbody>
           {tableData.data.map((row: any[], index: number) => (
             <tr key={index}>
               {row.map((cell, cellIndex) => (
@@ -267,20 +312,24 @@ const RiskProcessManagement: React.FC = () => {
           ))}
         </tbody>
       </table>
-
       {modalVisible && (
-        <div id="conflictModal" className="modal" style={{ display: 'block' }}>
-          <div className="modal-content ">
-            <button className="close" onClick={closeModal}>
-              &times;
-            </button>
-            <p>{modalMessage}</p>
+        <div id="conflictModal" className="modal fade show" style={{ display: 'block' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Notification</h5>
+                <button className="btn-close" onClick={closeModal}></button>
+              </div>
+              <div className="modal-body">
+                <p>{modalMessage}</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
-
   );
+  
 
 };
 

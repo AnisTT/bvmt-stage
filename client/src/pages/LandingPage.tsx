@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import httpClient from "../httpClient";
 import { User } from "../types";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const LandingPage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -22,24 +23,24 @@ const LandingPage: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h1>Welcome to this React Application</h1>
-      {user != null ? (
-        <div>
-          <h2>Logged in</h2>
-          <h3>ID: {user.id}</h3>
-          <h3>Email: {user.email}</h3>
+    <div className="container">
+      <h1 className="text-center my-4">Welcome</h1>
 
-          <button onClick={logoutUser}>Logout</button>
+      {user != null ? (
+        <div className="alert alert-success" role="alert">
+          <h2 className="alert-heading">Logged in</h2>
+          <p>ID: {user.id}</p>
+          <p>Email: {user.email}</p>
+
+          <button className="btn btn-primary" onClick={logoutUser}>Logout</button>
         </div>
       ) : (
-        <div>
+        <div className="alert alert-danger" role="alert">
           <p>You are not logged in</p>
           <div>
             <a href="/login">
-              <button>Login</button>
+              <button className="btn btn-primary">Login</button>
             </a>
-            
           </div>
         </div>
       )}

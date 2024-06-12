@@ -52,6 +52,17 @@ def create_activity_log_table():
         )
     """)
     get_db().commit()
+def create_roles_table():
+    cursor = get_db().cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT,
+            access_level TEXT,
+            authorized_Tables TEXT
+        )
+    """)
+    get_db().commit()
 
 
 
@@ -97,14 +108,19 @@ def login_user():
     cursor.execute("SELECT * FROM Users WHERE email = ?", (email,))
     user = cursor.fetchone()
 
+    ip_address = request.remote_addr
+
     if user is None:
+        cursor.execute("INSERT INTO UserActivityLog (user_id, ip_address, action) VALUES (?, ?, ?)", (None, ip_address, 'failed login - user not found'))
+        get_db().commit()
         return jsonify({"error": "Unauthorized"}), 401
 
     user_password = user[2]
     if not bcrypt.check_password_hash(user_password, password):
+        cursor.execute("INSERT INTO UserActivityLog (user_id, ip_address, action) VALUES (?, ?, ?)", (user[0], ip_address, 'failed login - incorrect password'))
+        get_db().commit()
         return jsonify({"error": "Unauthorized"}), 401
-    
-    ip_address = request.remote_addr  # Get user's IP address
+
     cursor.execute("INSERT INTO UserActivityLog (user_id, ip_address, action) VALUES (?, ?, ?)", (user[0], ip_address, 'login'))
     get_db().commit()
     
@@ -113,7 +129,11 @@ def login_user():
     cursor.execute("SELECT role FROM Users WHERE email = ?", (email,))
     role = cursor.fetchone()
     role = role[0] if role else None
-    access_token = create_access_token(identity=email, additional_claims={"role": role})
+    cursor.execute("SELECT id FROM Users WHERE email = ?", (email,))
+    user_id = cursor.fetchone()
+
+
+    access_token = create_access_token(identity=email, additional_claims={"role": role ,'user_id' : user_id})
     
     return jsonify({"access_token": access_token}), 200
 
@@ -241,7 +261,34 @@ def get_user_activity():
     cursor.execute("SELECT * FROM UserActivityLog")
     activities = cursor.fetchall()
     return jsonify(activities)
+@app.route('/userActivity/<user_id>', methods=['GET'])
+def get_user_activity_by_id(user_id):
+    cursor = get_db().cursor()
+    create_activity_log_table()
 
+    cursor.execute("SELECT * FROM UserActivityLog WHERE user_id = ?", (user_id,))
+    activities = cursor.fetchall()
+    return jsonify(activities)
+
+@app.route('/roles', methods=['GET'])
+def get_roles():
+    cursor = get_db().cursor()
+    cursor.execute("SELECT role FROM roles")
+    roles = cursor.fetchall()
+    return jsonify(roles)
+@app.route('/roles/Add-role', methods=['POST'])
+def add_role():
+    cursor = get_db().cursor()
+    
+    data = request.get_json()
+    print(data)
+    role = data['role']
+    access_level = data['access_level']
+    authorized_Tables = data['authorized_Tables']
+    
+    cursor.execute("INSERT INTO Roles (role, access, authorized) VALUES (?,?,?)", (role, access_level, authorized_Tables))
+    get_db().commit()
+    return '', 204
 
 if __name__ == '__main__':
     app.run(debug=True)
